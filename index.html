@@ -205,96 +205,172 @@
         </div>
     </div>
 
-    <script>
-        const { createApp, ref, onMounted } = Vue;
+    <script type="module">
+    // 🔥 1. Import Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // 🔥 अपना रेंडर (Render) सर्वर URL यहाँ डालें
-        const API_BASE_URL = "https://voice-t-master-backend.onrender.com/api";
+    // ⚙️ 2. YOUR FIREBASE CONFIG (यहाँ अपना असली डेटा डालें)
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5QsEn_oTRtHl29_QG-1GNw22OT5OSTTw",
+      authDomain: "voicemaster-cf9b9.firebaseapp.com",
+      projectId: "voicemaster-cf9b9",
+      storageBucket: "voicemaster-cf9b9.firebasestorage.app",
+      messagingSenderId: "1018749197360",
+      appId: "1:1018749197360:web:ea1db9ce2f84447e3ea1f5"
+    };
+        
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-        createApp({
-            setup() {
-                const user = ref(null);
-                const isLoading = ref(true); // शुरू में लोडिंग दिखाएँगे
+    // Vue Setup
+    const { createApp, ref, onMounted } = window.Vue;
+    const API_BASE_URL = "https://voice-t-master-backend.onrender.com/api";
 
-                // 1. पेज लोड होते ही URL में टोकन चेक करें
-                onMounted(async () => {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const extensionToken = urlParams.get('token');
+    // Helper: Decode JWT Token
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
 
-                    if (extensionToken) {
-                        console.log("🎟️ Extension Token Found in URL! Verifying...");
-                        await verifyExtensionToken(extensionToken);
+    createApp({
+        setup() {
+            const user = ref(null);
+            const isLoading = ref(true);
+
+            onMounted(async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const extensionToken = urlParams.get('token');
+
+                if (extensionToken) {
+                    // Scenario A: एक्सटेंशन से आया है (Auto Login)
+                    console.log("🎟️ Extension Token Found! Verifying...");
+                    await verifyExtensionToken(extensionToken);
+                } else {
+                    // Scenario B: डायरेक्ट वेबसाइट पर आया है
+                    // चेक करें कि क्या इसने पहले ही वेबसाइट पर लॉगिन किया हुआ है?
+                    const savedSession = localStorage.getItem('vtm_web_session');
+                    if (savedSession) {
+                        loadUserFromToken(savedSession);
+                    }
+                    isLoading.value = false;
+                }
+            });
+
+            // --- Extension Token Verifier ---
+            const verifyExtensionToken = async (token) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/payment/verify-checkout-token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: token })
+                    });
+                    const result = await response.json();
+                    
+                    if (result.valid) {
+                        user.value = {
+                            name: result.name || "Pro User",
+                            email: result.email || "Ext. Verified",
+                            customerId: result.customerId,
+                            uid: result.uid
+                        };
                     } else {
-                        console.log("🌐 Direct Visitor (No Token). Waiting for manual login.");
-                        // TODO: यहाँ हम Firebase Auth लगाएँगे डायरेक्ट विजिटर्स के लिए
-                        isLoading.value = false;
+                        alert("⚠️ Security Link Expired. Please click 'Upgrade' from the Extension again.");
                     }
-                });
+                } catch (error) {
+                    console.error("Token verification failed", error);
+                } finally {
+                    isLoading.value = false;
+                }
+            };
 
-                // 2. Token Verify Function (Calls Backend)
-                const verifyExtensionToken = async (token) => {
-                    try {
-                        // सर्वर को टोकन भेजें (यह API हम server.js में बनाएँगे)
-                        const response = await fetch(`${API_BASE_URL}/payment/verify-checkout-token`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token: token })
-                        });
+            // --- 🔥 NEW: Direct Website Google Login ---
+            const loginWithGoogle = async () => {
+                try {
+                    isLoading.value = true;
+                    // 1. Google Popup खोलें
+                    const result = await signInWithPopup(auth, provider);
+                    const firebaseToken = await result.user.getIdToken(true);
 
-                        const result = await response.json();
+                    // 2. अपने बैकएंड को टोकन भेजें (वही API जो एक्सटेंशन सेटअप में यूज़ होती है)
+                    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            firebaseToken: firebaseToken,
+                            country: "Web Visitor", 
+                            language: "en-US" 
+                        })
+                    });
 
-                        if (result.valid) {
-                            // अगर टोकन असली है, तो यूजर को लॉगिन कर दें!
-                            user.value = {
-                                name: result.name || "Pro User",
-                                email: result.email || "Ext. Verified",
-                                customerId: result.customerId,
-                                uid: result.uid
-                            };
-                            console.log("✅ Auto-Login Success for:", result.customerId);
-                        } else {
-                            alert("⚠️ Security Link Expired. Please click 'Upgrade' from the Extension again.");
-                        }
-                    } catch (error) {
-                        console.error("Token verification failed", error);
-                        alert("Error connecting to server.");
-                    } finally {
-                        isLoading.value = false;
+                    const data = await response.json();
+
+                    if (data.success && data.sessionToken) {
+                        // 3. सर्वर से मिला नया टोकन ब्राउज़र में सेव कर लें
+                        localStorage.setItem('vtm_web_session', data.sessionToken);
+                        loadUserFromToken(data.sessionToken);
+                        console.log("✅ Direct Login Successful!");
+                    } else {
+                        alert("Login failed on server.");
                     }
-                };
+                } catch (error) {
+                    console.error(error);
+                    // alert("Google Login Canceled.");
+                } finally {
+                    isLoading.value = false;
+                }
+            };
 
-                // 3. Buy Plan (Checkout Page खोलना)
-                const buyPlan = (planId) => {
-                    if (!user.value) {
-                        alert("Please Login First to Buy a Plan!");
-                        return;
-                    }
+            // Token से डेटा निकालकर UI में दिखाना
+            const loadUserFromToken = (token) => {
+                const decoded = parseJwt(token);
+                if (decoded && decoded.exp * 1000 > Date.now()) {
+                    user.value = {
+                        name: decoded.name || "User",
+                        email: decoded.email || "",
+                        customerId: decoded.cid,
+                        uid: decoded.uid,
+                        photo: decoded.photo || null
+                    };
+                } else {
+                    localStorage.removeItem('vtm_web_session'); // Expired
+                }
+            };
 
-                    // अभी के लिए Alert, बाद में इसे Stripe/PayPal के पेमेंट पेज पर भेजेंगे
-                    console.log(`🛒 Initiating Checkout for ${planId} by ${user.value.customerId}`);
-                    alert(`Redirecting ${user.value.name} to Secure Checkout for ${planId}...`);
-                };
+            const logout = async () => {
+                await signOut(auth);
+                localStorage.removeItem('vtm_web_session');
+                user.value = null;
+                window.history.replaceState({}, document.title, window.location.pathname);
+            };
 
-                // 4. Direct Login (Google) - Placeholder for direct visitors
-                const loginWithGoogle = () => {
-                    alert("Firebase Google Login Popup will open here!");
-                    // डमी लॉगिन टेस्ट के लिए:
-                    user.value = { name: "Direct User", email: "direct@gmail.com", customerId: "VTM-GUEST" };
-                };
+            const buyPlan = (planId) => {
+                if (!user.value) {
+                    alert("Please Login First to Buy a Plan!");
+                    return;
+                }
+                console.log(`🛒 Checkout for ${planId} by ${user.value.customerId}`);
+                alert(`Redirecting ${user.value.name} to Secure Checkout for ${planId}...`);
+            };
 
-                const logout = () => {
-                    user.value = null;
-                    // URL से टोकन हटा दें ताकि रिफ्रेश पर वापस लॉगिन न हो
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                };
-
-                return {
-                    user, isLoading, buyPlan, loginWithGoogle, logout
-                };
-            }
-        }).mount('#app');
-    </script>
+            return {
+                user, isLoading, buyPlan, loginWithGoogle, logout
+            };
+        }
+    }).mount('#app');
+</script>
 
 </body>
+
 
 </html>
