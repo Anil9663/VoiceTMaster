@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice T Master - Pricing</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 15px 50px;
+        }
+
+        .brand {
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: #2c3e50;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e9ecef;
+        }
+
+        /* Pricing Cards Styles (Copied from your Extension) */
+        .pricing-section {
+            padding: 60px 20px;
+        }
+
+        .plan-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            border: 2px solid #e9ecef;
+            transition: 0.3s;
+        }
+
+        .plan-card.popular {
+            transform: scale(1.05);
+            border-color: #007bff;
+            box-shadow: 0 10px 40px rgba(0, 123, 255, 0.25);
+            z-index: 2;
+        }
+
+        .plan-card.lifetime {
+            background: #212529;
+            color: white;
+            border-color: #FFD700;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.15);
+        }
+
+        .badge-popular {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <nav class="navbar d-flex justify-content-between">
+            <div class="brand">
+                <i class="fas fa-microphone-lines text-primary"></i> Voice T Master
+            </div>
+
+            <div v-if="isLoading" class="text-muted">
+                <i class="fas fa-spinner fa-spin"></i> Checking secure connection...
+            </div>
+
+            <div v-else-if="user" class="user-profile">
+                <div class="text-right mr-2">
+                    <div style="font-weight: 600; font-size: 0.9rem;">{{ user.name }}</div>
+                    <div style="font-size: 0.75rem; color: #666;">{{ user.email || user.customerId }}</div>
+                </div>
+                <img :src="user.photo || 'https://ui-avatars.com/api/?name=User'" class="user-avatar">
+                <button class="btn btn-sm btn-outline-danger ml-3" @click="logout">Logout</button>
+            </div>
+
+            <div v-else>
+                <button class="btn btn-primary font-weight-bold px-4" @click="loginWithGoogle">
+                    <i class="fab fa-google mr-2"></i> Login / Signup
+                </button>
+            </div>
+        </nav>
+
+        <div class="container pricing-section">
+            <div class="text-center mb-5">
+                <h1 class="font-weight-bold">Unlock Full Potential 🚀</h1>
+                <p class="text-muted" style="max-width: 600px; margin: 0 auto;">
+                    Choose a plan that fits your workflow.
+                    <span v-if="user" class="d-block mt-2 text-success font-weight-bold">
+                        Logged in as: {{ user.customerId }}
+                    </span>
+                </p>
+            </div>
+
+            <div class="row justify-content-center align-items-end mb-5">
+
+                <div class="col-md-4 mb-4">
+                    <div class="plan-card h-100">
+                        <div class="badge badge-light border position-absolute badge-popular px-3 py-2 text-uppercase">
+                            FLEXIBLE</div>
+                        <h5 class="font-weight-bold mb-4">MONTHLY PRO</h5>
+                        <div class="mb-4">
+                            <span class="font-weight-bold" style="font-size: 3rem;">$5</span>
+                            <span class="font-weight-bold" style="font-size: 1.5rem;">.99<small>/mo</small></span>
+                        </div>
+                        <p class="small text-muted mb-4">Billed monthly</p>
+                        <button class="btn btn-outline-primary btn-block py-2 mb-4 font-weight-bold rounded-pill"
+                            @click="buyPlan('pro_monthly')">
+                            Subscribe
+                        </button>
+                        <ul class="list-unstyled small text-left mx-auto" style="max-width: 200px;">
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary mr-2"></i> Unlimited Dictation
+                            </li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-primary mr-2"></i> Translate & Macros
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="plan-card popular h-100">
+                        <div
+                            class="badge badge-primary position-absolute badge-popular px-3 py-2 text-uppercase shadow-sm">
+                            MOST POPULAR ⭐</div>
+                        <h5 class="font-weight-bold mb-2">YEARLY SAVER</h5>
+                        <div class="text-success font-weight-bold small mb-2">Best Value (Save 50%)</div>
+                        <div class="mb-3 position-relative">
+                            <div class="text-muted" style="text-decoration: line-through; font-size: 1.2rem;">$5.99
+                            </div>
+                            <span class="font-weight-bold" style="font-size: 3.5rem;">$2</span>
+                            <span class="font-weight-bold" style="font-size: 1.5rem;">.99<small>/mo</small></span>
+                        </div>
+                        <p class="small text-muted mb-4">Billed as one payment of $35.99</p>
+                        <button class="btn btn-primary btn-block py-2 mb-4 font-weight-bold rounded-pill shadow-sm"
+                            @click="buyPlan('pro_yearly')">
+                            Start Yearly Plan
+                        </button>
+                        <ul class="list-unstyled small text-left mx-auto" style="max-width: 200px;">
+                            <li class="mb-2"><i class="fas fa-check-circle text-success mr-2"></i> Everything Unlocked
+                                🔓</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-success mr-2"></i> Custom Commands</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="plan-card lifetime h-100">
+                        <div
+                            class="badge badge-warning text-dark position-absolute badge-popular px-3 py-2 text-uppercase font-weight-bold shadow-sm">
+                            ONE-TIME PAYMENT</div>
+                        <h5 class="font-weight-bold mb-4 text-warning">LIFETIME ACCESS</h5>
+                        <div class="mb-4">
+                            <span class="font-weight-bold" style="font-size: 3rem;">$199</span>
+                            <span class="font-weight-bold" style="font-size: 1.5rem;">.99<small>/once</small></span>
+                        </div>
+                        <p class="small text-white-50 mb-4">Pay once, own forever</p>
+                        <button
+                            class="btn btn-warning text-dark btn-block py-2 mb-4 font-weight-bold rounded-pill shadow-sm"
+                            @click="buyPlan('lifetime_pro')">
+                            Get Lifetime Deal
+                        </button>
+                        <ul class="list-unstyled small text-left mx-auto text-white" style="max-width: 200px;">
+                            <li class="mb-2"><i class="fas fa-check-circle text-warning mr-2"></i> No Monthly Fees</li>
+                            <li class="mb-2"><i class="fas fa-check-circle text-warning mr-2"></i> Lifetime Pro Status
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        // 🔥 अपना रेंडर (Render) सर्वर URL यहाँ डालें
+        const API_BASE_URL = "https://voice-t-master-backend.onrender.com/api";
+
+        createApp({
+            setup() {
+                const user = ref(null);
+                const isLoading = ref(true); // शुरू में लोडिंग दिखाएँगे
+
+                // 1. पेज लोड होते ही URL में टोकन चेक करें
+                onMounted(async () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const extensionToken = urlParams.get('token');
+
+                    if (extensionToken) {
+                        console.log("🎟️ Extension Token Found in URL! Verifying...");
+                        await verifyExtensionToken(extensionToken);
+                    } else {
+                        console.log("🌐 Direct Visitor (No Token). Waiting for manual login.");
+                        // TODO: यहाँ हम Firebase Auth लगाएँगे डायरेक्ट विजिटर्स के लिए
+                        isLoading.value = false;
+                    }
+                });
+
+                // 2. Token Verify Function (Calls Backend)
+                const verifyExtensionToken = async (token) => {
+                    try {
+                        // सर्वर को टोकन भेजें (यह API हम server.js में बनाएँगे)
+                        const response = await fetch(`${API_BASE_URL}/payment/verify-checkout-token`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: token })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.valid) {
+                            // अगर टोकन असली है, तो यूजर को लॉगिन कर दें!
+                            user.value = {
+                                name: result.name || "Pro User",
+                                email: result.email || "Ext. Verified",
+                                customerId: result.customerId,
+                                uid: result.uid
+                            };
+                            console.log("✅ Auto-Login Success for:", result.customerId);
+                        } else {
+                            alert("⚠️ Security Link Expired. Please click 'Upgrade' from the Extension again.");
+                        }
+                    } catch (error) {
+                        console.error("Token verification failed", error);
+                        alert("Error connecting to server.");
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                // 3. Buy Plan (Checkout Page खोलना)
+                const buyPlan = (planId) => {
+                    if (!user.value) {
+                        alert("Please Login First to Buy a Plan!");
+                        return;
+                    }
+
+                    // अभी के लिए Alert, बाद में इसे Stripe/PayPal के पेमेंट पेज पर भेजेंगे
+                    console.log(`🛒 Initiating Checkout for ${planId} by ${user.value.customerId}`);
+                    alert(`Redirecting ${user.value.name} to Secure Checkout for ${planId}...`);
+                };
+
+                // 4. Direct Login (Google) - Placeholder for direct visitors
+                const loginWithGoogle = () => {
+                    alert("Firebase Google Login Popup will open here!");
+                    // डमी लॉगिन टेस्ट के लिए:
+                    user.value = { name: "Direct User", email: "direct@gmail.com", customerId: "VTM-GUEST" };
+                };
+
+                const logout = () => {
+                    user.value = null;
+                    // URL से टोकन हटा दें ताकि रिफ्रेश पर वापस लॉगिन न हो
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                };
+
+                return {
+                    user, isLoading, buyPlan, loginWithGoogle, logout
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
