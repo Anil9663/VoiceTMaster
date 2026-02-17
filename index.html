@@ -433,13 +433,14 @@
                     onApprove: async (data, actions) => {
                         isPaymentLoading.value = true;
                         try {
-                            const res = await fetch(`${API_BASE_URL}/capture-order-web`, {
+                                const res = await fetch(`${API_BASE_URL}/capture-order-web`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ 
                                     orderID: data.orderID, 
                                     planId: selectedPlanId.value, 
-                                    uid: user.value.uid 
+                                    uid: user.value.uid,
+                                    cid: user.value.customerId // 🔥 [NEW] सर्वर को CID भेजना ज़रूरी है
                                 })
                             });
                             
@@ -505,3 +506,4 @@
 
 
 </html>
+
