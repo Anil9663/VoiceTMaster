@@ -86,12 +86,58 @@
         }
 
         /* Payment Modal Styles */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-        .payment-box { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 30px; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.2); text-align: center; animation: slideUp 0.3s ease-out; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: #999; }
-        .close-btn:hover { color: #333; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .payment-box {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
@@ -212,298 +258,309 @@
             </div>
         </div>
 
-         <div v-if="showPaymentModal" class="modal-overlay" @click.self="closePaymentModal">
+        <div v-if="showPaymentModal" class="modal-overlay" @click.self="closePaymentModal">
             <div class="payment-box">
                 <button class="close-btn" @click="closePaymentModal">&times;</button>
                 <h4 class="font-weight-bold mb-1">Secure Checkout</h4>
                 <p class="text-muted small mb-4">Plan: <strong class="text-dark">{{ selectedPlanName }}</strong></p>
-                
+
                 <div v-if="isPaymentLoading" class="text-center my-4">
                     <i class="fas fa-spinner fa-spin fa-2x text-primary mb-2"></i>
                     <p>Processing your secure payment...</p>
                 </div>
 
                 <div id="paypal-button-container" :class="{'d-none': isPaymentLoading}"></div>
-                
+
                 <div class="text-center mt-3 text-muted" style="font-size: 0.7rem;">
                     <i class="fas fa-lock text-success mr-1"></i> SSL Encrypted Payment
                 </div>
             </div>
         </div>
 
-        
+
     </div>
 
     <script type="module">
-    // 🔥 1. Import Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // ⚙️ 2. YOUR FIREBASE CONFIG (यहाँ अपना असली डेटा डालें)
-    const firebaseConfig = {
-      apiKey: "AIzaSyD5QsEn_oTRtHl29_QG-1GNw22OT5OSTTw",
-      authDomain: "voicemaster-cf9b9.firebaseapp.com",
-      projectId: "voicemaster-cf9b9",
-      storageBucket: "voicemaster-cf9b9.firebasestorage.app",
-      messagingSenderId: "1018749197360",
-      appId: "1:1018749197360:web:ea1db9ce2f84447e3ea1f5"
-    };
-        
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
+        const EXTENSION_ID = "fmbaabldhiocllfidagbnbfpggcpaldb"; // अपना असली Extension ID यहाँ डालें
+        // 🔥 1. Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // Vue Setup
-    const { createApp, ref, onMounted } = window.Vue;
-    const API_BASE_URL = "https://voice-t-master-backend.onrender.com/api";
+        // ⚙️ 2. YOUR FIREBASE CONFIG (यहाँ अपना असली डेटा डालें)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5QsEn_oTRtHl29_QG-1GNw22OT5OSTTw",
+            authDomain: "voicemaster-cf9b9.firebaseapp.com",
+            projectId: "voicemaster-cf9b9",
+            storageBucket: "voicemaster-cf9b9.firebasestorage.app",
+            messagingSenderId: "1018749197360",
+            appId: "1:1018749197360:web:ea1db9ce2f84447e3ea1f5"
+        };
 
-    // Helper: Decode JWT Token
-    function parseJwt(token) {
-        try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
-        } catch (e) {
-            return null;
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Vue Setup
+        const { createApp, ref, onMounted } = window.Vue;
+        const API_BASE_URL = "https://voice-t-master-backend.onrender.com/api";
+
+        // Helper: Decode JWT Token
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
         }
-    }
 
-    createApp({
-        setup() {
-            const user = ref(null);
-            const isLoading = ref(true);
-            // Payment State
-            const showPaymentModal = ref(false);
-            const isPaymentLoading = ref(false);
-            const selectedPlanId = ref('');
-            const selectedPlanName = ref('');
+        createApp({
+            setup() {
+                const user = ref(null);
+                const isLoading = ref(true);
+                // Payment State
+                const showPaymentModal = ref(false);
+                const isPaymentLoading = ref(false);
+                const selectedPlanId = ref('');
+                const selectedPlanName = ref('');
 
-            onMounted(async () => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const extensionToken = urlParams.get('token');
+                onMounted(async () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const extensionToken = urlParams.get('token');
 
-                if (extensionToken) {
-                    // Scenario A: एक्सटेंशन से आया है (Auto Login)
-                    console.log("🎟️ Extension Token Found! Verifying...");
-                    await verifyExtensionToken(extensionToken);
-                } else {
-                    // Scenario B: डायरेक्ट वेबसाइट पर आया है
-                    // चेक करें कि क्या इसने पहले ही वेबसाइट पर लॉगिन किया हुआ है?
-                    const savedSession = localStorage.getItem('vtm_web_session');
-                    if (savedSession) {
-                        loadUserFromToken(savedSession);
-                    }
-                    isLoading.value = false;
-                }
-            });
-
-            // --- Extension Token Verifier ---
-            const verifyExtensionToken = async (token) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/payment/verify-checkout-token`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: token })
-                    });
-                    const result = await response.json();
-                    
-                    if (result.valid) {
-                        user.value = {
-                            name: result.name || "Pro User",
-                            email: result.email || "Ext. Verified",
-                            customerId: result.customerId,
-                            uid: result.uid
-                        };
+                    if (extensionToken) {
+                        // Scenario A: एक्सटेंशन से आया है (Auto Login)
+                        console.log("🎟️ Extension Token Found! Verifying...");
+                        await verifyExtensionToken(extensionToken);
                     } else {
-                        alert("⚠️ Security Link Expired. Please click 'Upgrade' from the Extension again.");
+                        // Scenario B: डायरेक्ट वेबसाइट पर आया है
+                        // चेक करें कि क्या इसने पहले ही वेबसाइट पर लॉगिन किया हुआ है?
+                        const savedSession = localStorage.getItem('vtm_web_session');
+                        if (savedSession) {
+                            loadUserFromToken(savedSession);
+                        }
+                        isLoading.value = false;
                     }
-                } catch (error) {
-                    console.error("Token verification failed", error);
-                } finally {
-                    isLoading.value = false;
-                }
-            };
+                });
 
-            // --- 🔥 NEW: Direct Website Google Login ---
-            const loginWithGoogle = async () => {
-                try {
-                    isLoading.value = true;
-                    // 1. Google Popup खोलें
-                    const result = await signInWithPopup(auth, provider);
-                    const firebaseToken = await result.user.getIdToken(true);
-
-                    // 2. अपने बैकएंड को टोकन भेजें (वही API जो एक्सटेंशन सेटअप में यूज़ होती है)
-                    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            firebaseToken: firebaseToken,
-                            country: "Web Visitor", 
-                            language: "en-US" 
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success && data.sessionToken) {
-                        // 3. सर्वर से मिला नया टोकन ब्राउज़र में सेव कर लें
-                        localStorage.setItem('vtm_web_session', data.sessionToken);
-                        loadUserFromToken(data.sessionToken);
-                        console.log("✅ Direct Login Successful!");
-                    } else {
-                        alert("Login failed on server.");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    // alert("Google Login Canceled.");
-                } finally {
-                    isLoading.value = false;
-                }
-            };
-
-            // Token से डेटा निकालकर UI में दिखाना
-            const loadUserFromToken = (token) => {
-                const decoded = parseJwt(token);
-                if (decoded && decoded.exp * 1000 > Date.now()) {
-                    user.value = {
-                        name: decoded.name || "User",
-                        email: decoded.email || "",
-                        customerId: decoded.cid,
-                        uid: decoded.uid,
-                        photo: decoded.photo || null
-                    };
-                } else {
-                    localStorage.removeItem('vtm_web_session'); // Expired
-                }
-            };
-
-            const logout = async () => {
-                await signOut(auth);
-                localStorage.removeItem('vtm_web_session');
-                user.value = null;
-                window.history.replaceState({}, document.title, window.location.pathname);
-            };
-
-            // --- Helper: Load PayPal Script Dynamically ---
-            const loadPayPalSDK = async () => {
-                if (window.paypal) return true; // पहले से लोड है
-                try {
-                    // सर्वर से Client ID लें (सुरक्षा के लिए)
-                    const res = await fetch(`${API_BASE_URL}/config/paypal`);
-                    const config = await res.json();
-                    
-                    return new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = `https://www.paypal.com/sdk/js?client-id=${config.clientId}&currency=USD&intent=capture`;
-                        script.onload = () => resolve(true);
-                        script.onerror = () => reject(false);
-                        document.body.appendChild(script);
-                    });
-                } catch (e) {
-                    console.error("Failed to load PayPal", e);
-                    return false;
-                }
-            };
-
-            // --- Render PayPal Buttons ---
-            const renderPayPalButtons = () => {
-                document.getElementById('paypal-button-container').innerHTML = ''; // पुराना बटन साफ करें
-                
-                window.paypal.Buttons({
-                    // 1. सर्वर से Order ID बनाएँ
-                    createOrder: async (data, actions) => {
-                        const res = await fetch(`${API_BASE_URL}/create-order-web`, {
+                // --- Extension Token Verifier ---
+                const verifyExtensionToken = async (token) => {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/payment/verify-checkout-token`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                planId: selectedPlanId.value, 
-                                uid: user.value.uid // UID भेजना जरूरी है
+                            body: JSON.stringify({ token: token })
+                        });
+                        const result = await response.json();
+
+                        if (result.valid) {
+                            user.value = {
+                                name: result.name || "Pro User",
+                                email: result.email || "Ext. Verified",
+                                customerId: result.customerId,
+                                uid: result.uid
+                            };
+                        } else {
+                            alert("⚠️ Security Link Expired. Please click 'Upgrade' from the Extension again.");
+                        }
+                    } catch (error) {
+                        console.error("Token verification failed", error);
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                // --- 🔥 NEW: Direct Website Google Login ---
+                const loginWithGoogle = async () => {
+                    try {
+                        isLoading.value = true;
+                        // 1. Google Popup खोलें
+                        const result = await signInWithPopup(auth, provider);
+                        const firebaseToken = await result.user.getIdToken(true);
+
+                        // 2. अपने बैकएंड को टोकन भेजें (वही API जो एक्सटेंशन सेटअप में यूज़ होती है)
+                        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                firebaseToken: firebaseToken,
+                                country: "Web Visitor",
+                                language: "en-US"
                             })
                         });
-                        const orderData = await res.json();
-                        if(orderData.error) throw new Error(orderData.error);
-                        return orderData.orderID;
-                    },
-                    
-                    // 2. पेमेंट अप्रूव होने पर सर्वर से वेरीफाई करवाएँ (FOOLPROOF STEP)
-                    onApprove: async (data, actions) => {
-                        isPaymentLoading.value = true;
-                        try {
-                                const res = await fetch(`${API_BASE_URL}/capture-order-web`, {
+
+                        const data = await response.json();
+
+                        if (data.success && data.sessionToken) {
+                            // 3. सर्वर से मिला नया टोकन ब्राउज़र में सेव कर लें
+                            localStorage.setItem('vtm_web_session', data.sessionToken);
+                            loadUserFromToken(data.sessionToken);
+                            console.log("✅ Direct Login Successful!");
+                        } else {
+                            alert("Login failed on server.");
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        // alert("Google Login Canceled.");
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                // Token से डेटा निकालकर UI में दिखाना
+                const loadUserFromToken = (token) => {
+                    const decoded = parseJwt(token);
+                    if (decoded && decoded.exp * 1000 > Date.now()) {
+                        user.value = {
+                            name: decoded.name || "User",
+                            email: decoded.email || "",
+                            customerId: decoded.cid,
+                            uid: decoded.uid,
+                            photo: decoded.photo || null
+                        };
+                    } else {
+                        localStorage.removeItem('vtm_web_session'); // Expired
+                    }
+                };
+
+                const logout = async () => {
+                    await signOut(auth);
+                    localStorage.removeItem('vtm_web_session');
+                    user.value = null;
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                };
+
+                // --- Helper: Load PayPal Script Dynamically ---
+                const loadPayPalSDK = async () => {
+                    if (window.paypal) return true; // पहले से लोड है
+                    try {
+                        // सर्वर से Client ID लें (सुरक्षा के लिए)
+                        const res = await fetch(`${API_BASE_URL}/config/paypal`);
+                        const config = await res.json();
+
+                        return new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = `https://www.paypal.com/sdk/js?client-id=${config.clientId}&currency=USD&intent=capture`;
+                            script.onload = () => resolve(true);
+                            script.onerror = () => reject(false);
+                            document.body.appendChild(script);
+                        });
+                    } catch (e) {
+                        console.error("Failed to load PayPal", e);
+                        return false;
+                    }
+                };
+
+                // --- Render PayPal Buttons ---
+                const renderPayPalButtons = () => {
+                    document.getElementById('paypal-button-container').innerHTML = ''; // पुराना बटन साफ करें
+
+                    window.paypal.Buttons({
+                        // 1. सर्वर से Order ID बनाएँ
+                        createOrder: async (data, actions) => {
+                            const res = await fetch(`${API_BASE_URL}/create-order-web`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    orderID: data.orderID, 
-                                    planId: selectedPlanId.value, 
-                                    uid: user.value.uid,
-                                    cid: user.value.customerId // 🔥 [NEW] सर्वर को CID भेजना ज़रूरी है
+                                body: JSON.stringify({
+                                    planId: selectedPlanId.value,
+                                    uid: user.value.uid // UID भेजना जरूरी है
                                 })
                             });
-                            
-                            const captureData = await res.json();
-                            
-                            if (captureData.success) {
-                                showPaymentModal.value = false;
-                                alert("🎉 Payment Successful! Your account has been upgraded to PRO.");
-                                // UI में तुरंत नाम अपडेट कर दें
-                                user.value.planName = selectedPlanId.value;
-                            } else {
-                                alert("⚠️ Payment Verification Failed.");
+                            const orderData = await res.json();
+                            if (orderData.error) throw new Error(orderData.error);
+                            return orderData.orderID;
+                        },
+
+                        // 2. पेमेंट अप्रूव होने पर सर्वर से वेरीफाई करवाएँ (FOOLPROOF STEP)
+                        onApprove: async (data, actions) => {
+                            isPaymentLoading.value = true;
+                            try {
+                                const res = await fetch(`${API_BASE_URL}/capture-order-web`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        orderID: data.orderID,
+                                        planId: selectedPlanId.value,
+                                        uid: user.value.uid,
+                                        cid: user.value.customerId // 🔥 [NEW] सर्वर को CID भेजना ज़रूरी है
+                                    })
+                                });
+
+                                const captureData = await res.json();
+
+                                if (captureData.success) {
+                                    showPaymentModal.value = false;
+                                    alert("🎉 Payment Successful! Your account has been upgraded to PRO.");
+                                    user.value.planName = selectedPlanId.value;
+
+                                    // 🔥 [THE MAGIC PING] एक्सटेंशन को मैसेज भेजें कि पेमेंट हो गया है
+                                    if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
+                                        try {
+                                            chrome.runtime.sendMessage(EXTENSION_ID, { action: "PAYMENT_SUCCESS" }, (response) => {
+                                                console.log("📡 Extension Notified:", response);
+                                            });
+                                        } catch (e) {
+                                            console.log("Extension not found or message blocked.");
+                                        }
+                                    }
+                                } else {
+                                    alert("⚠️ Payment Verification Failed.");
+                                }
+                            } catch (error) {
+                                console.error("Capture Error:", error);
+                                alert("Something went wrong during verification.");
+                            } finally {
+                                isPaymentLoading.value = false;
                             }
-                        } catch (error) {
-                            console.error("Capture Error:", error);
-                            alert("Something went wrong during verification.");
-                        } finally {
-                            isPaymentLoading.value = false;
+                        },
+
+                        onError: (err) => {
+                            console.error("PayPal Error:", err);
+                            alert("An error occurred with PayPal. Please try again.");
                         }
-                    },
-                    
-                    onError: (err) => {
-                        console.error("PayPal Error:", err);
-                        alert("An error occurred with PayPal. Please try again.");
+                    }).render('#paypal-button-container');
+                };
+
+                // --- Main Buy Button Click ---
+                const buyPlan = async (planId) => {
+                    if (!user.value) {
+                        alert("Please Login First to Buy a Plan!");
+                        return;
                     }
-                }).render('#paypal-button-container');
-            };
 
-            // --- Main Buy Button Click ---
-            const buyPlan = async (planId) => {
-                if (!user.value) {
-                    alert("Please Login First to Buy a Plan!");
-                    return;
-                }
-                
-                selectedPlanId.value = planId;
-                selectedPlanName.value = planId.replace('_', ' ').toUpperCase();
-                showPaymentModal.value = true;
-                
-                // PayPal लोड करें और बटन दिखाएँ
-                const isLoaded = await loadPayPalSDK();
-                if (isLoaded) {
-                    setTimeout(() => { renderPayPalButtons(); }, 100);
-                } else {
-                    alert("Failed to load Payment Gateway. Please check your internet connection.");
+                    selectedPlanId.value = planId;
+                    selectedPlanName.value = planId.replace('_', ' ').toUpperCase();
+                    showPaymentModal.value = true;
+
+                    // PayPal लोड करें और बटन दिखाएँ
+                    const isLoaded = await loadPayPalSDK();
+                    if (isLoaded) {
+                        setTimeout(() => { renderPayPalButtons(); }, 100);
+                    } else {
+                        alert("Failed to load Payment Gateway. Please check your internet connection.");
+                        showPaymentModal.value = false;
+                    }
+                };
+
+                const closePaymentModal = () => {
                     showPaymentModal.value = false;
-                }
-            };
+                };
 
-            const closePaymentModal = () => {
-                showPaymentModal.value = false;
-            };
-
-            return {
-                user, isLoading, buyPlan, loginWithGoogle, logout,
-                showPaymentModal, isPaymentLoading, selectedPlanName, closePaymentModal // 🔥 New variables
-            };
-        }
-    }).mount('#app');
-</script>
+                return {
+                    user, isLoading, buyPlan, loginWithGoogle, logout,
+                    showPaymentModal, isPaymentLoading, selectedPlanName, closePaymentModal // 🔥 New variables
+                };
+            }
+        }).mount('#app');
+    </script>
 
 </body>
 
 
 </html>
-
